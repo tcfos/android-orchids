@@ -3,6 +3,19 @@ plugins {
     alias(libs.plugins.kotlin.android)
 }
 
+// ---- START: ADD THIS CODE ----
+import java.util.Properties
+
+// Create a Properties object
+val localProperties = Properties()
+// Find the local.properties file in the root project
+val localPropertiesFile = rootProject.file("local.properties")
+// If the file exists, load its contents
+if (localPropertiesFile.exists() && localPropertiesFile.isFile) {
+    localProperties.load(localPropertiesFile.inputStream())
+}
+// ---- END: ADD THIS CODE ----
+
 android {
     namespace = "com.example.androidorchids"
     compileSdk {
@@ -19,7 +32,7 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         manifestPlaceholders["GOOGLE_MAPS_API_KEY"] =
-            project.findProperty("GOOGLE_MAPS_API_KEY") as String? ?: ""
+            localProperties.getProperty("GOOGLE_MAPS_API_KEY") ?: ""
     }
 
     buildTypes {
