@@ -4,9 +4,11 @@ import android.Manifest
 import android.content.pm.PackageManager
 import android.graphics.Color
 import android.location.Location
+import android.net.Uri
 import android.os.Bundle
 import android.os.Looper
 import android.widget.Button
+import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
@@ -23,6 +25,9 @@ import com.google.android.gms.maps.SupportMapFragment
 import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.maps.model.Polyline
 import com.google.android.gms.maps.model.PolylineOptions
+import org.json.JSONArray
+import org.json.JSONObject
+import java.io.IOException
 
 class MainActivity : AppCompatActivity(), OnMapReadyCallback {
     private var mMap: GoogleMap? = null
@@ -31,6 +36,7 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
     private var isRecording = false
     private val pathPoints = mutableListOf<LatLng>()
     private lateinit var recordButton: Button
+    private lateinit var exportButton: Button
     private lateinit var locationRequest: LocationRequest
     private var locationCallback: LocationCallback? = null
     private var polyline: Polyline? = null
@@ -43,6 +49,10 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
                 getDeviceLocation()
             }
         }
+
+    private val createDocumentLauncher = registerForActivityResult(ActivityResultContracts.CreateDocument("application/json")) { uri ->
+        uri?.let { exportTrackToFile(it) }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -60,6 +70,15 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
                 stopRecording()
             } else {
                 startRecording()
+            }
+        }
+
+        exportButton = findViewById(R.id.export_button)
+        exportButton.setOnClickListener {
+            if (pathPoints.isNotEmpty()) {
+                createDocumentLauncher.launch("hiking_track.json")
+            } else {
+                Toast.makeText(this, "No track to export", Toast.LENGTH_SHORT).show()
             }
         }
 
@@ -119,6 +138,32 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
 
     private fun updatePolyline() {
         polyline?.points = pathPoints
+    }
+
+    private fun exportTrackToFile(uri: Uri) {
+        val json = buildJsonTrack()
+        try {
+            contentResolver.openOutputStream(uri)?.use {
+                it.write(json.toByteArray())
+            }
+            Toast.makeText(this, "Track exported successfully", Toast.LENGTH_SHORT).show()
+        } catch (e: IOException) {
+            Toast.makeText(this, "Failed to export track", Toast.LENGTH_SHORT).show()
+            e.printStackTrace()
+        }
+    }
+
+    private fun buildJsonTrack(): String {
+        val root = JSONObject()
+        val track = JSONArray()
+        pathPoints.forEach { latLng ->
+            val point = JSONObject()
+            point.put("latitude", latLng.latitude)
+            point.put("longitude", latLng.longitude)
+            track.put(point)
+        }
+        root.put("track", track)
+        return root.toString(4)
     }
 
     private fun updateLocationUI() {
