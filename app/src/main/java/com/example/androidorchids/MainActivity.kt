@@ -10,6 +10,7 @@ import android.os.Looper
 import android.widget.Button
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import com.google.android.gms.location.FusedLocationProviderClient
@@ -147,10 +148,19 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
                 it.write(json.toByteArray())
             }
             Toast.makeText(this, "Track exported successfully", Toast.LENGTH_SHORT).show()
+            showJsonContent(json)
         } catch (e: IOException) {
             Toast.makeText(this, "Failed to export track", Toast.LENGTH_SHORT).show()
             e.printStackTrace()
         }
+    }
+
+    private fun showJsonContent(json: String) {
+        AlertDialog.Builder(this)
+            .setTitle("Exported Track")
+            .setMessage(json)
+            .setPositiveButton(android.R.string.ok, null)
+            .show()
     }
 
     private fun buildJsonTrack(): String {
